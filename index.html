@@ -1,243 +1,329 @@
 ﻿<!DOCTYPE html>
 <html>
-<head>
-    <title></title>
-	<meta charset="utf-8" />
-</head>
-<body>
-    <script src="jquery-2.1.4.min.js"></script>
-    <script src="pixi.min.js"></script>
-<script>
-    var screenWidth = 800;
-    var screenHeight = 600;
-    var renderer = new PIXI.autoDetectRenderer(screenWidth, screenHeight);
-    document.body.appendChild(renderer.view);
-    var stage = new PIXI.Container();
-    
-    function newRoad() {
-        var roadTexture = PIXI.Texture.fromImage('road2.png');
-        var road = new PIXI.Sprite(roadTexture);
-
-        road.position.x = 0;
-        road.position.y = 400;
-        road.scale.x = 1;
-        road.scale.y = 0.25;
-        return road;
-    }
-
-    var road = newRoad();
-    stage.addChild(road);
-    var floors = [];
-    floors.push(road);
-
-    function newBuilding() {
-        var buildingTexture = PIXI.Texture.fromImage('building.png');
-        var building = new PIXI.Sprite(buildingTexture);
-
-        building.position.x = 400;
-        building.position.y = 150;
-        building.scale.x = 1;
-        building.scale.y = 1;
-        return building;
-    }
-
-    var building = newBuilding();
-    stage.addChild(building);
-
-    function newPlayer() {
-        var playerTexture = PIXI.Texture.fromImage('bunny.png');
-        var player = new PIXI.Sprite(playerTexture);
-        player.position.x = 200;
-        player.position.y = 100;
-        player.scale.x = 0.5;
-        player.scale.y = 0.5;
-        player.vx = 0;
-        player.vy = 0;
-
-        return player;
-    }
-
-    var player = newPlayer();
-    stage.addChild(player);
-
-    function createKeybindings() {
-        var left = keyboard(37),
-            up = keyboard(38),
-            right = keyboard(39),
-            down = keyboard(40);
-
-        this.keys = {}
-
-        left.press = function() {
-            keys.left = true;
-        };
-
-        left.release = function () {
-            keys.left = false;
-        };
-
-        up.press = function() {
-            keys.up = true;
-        };
-
-        up.release = function() {
-            keys.up = false;
-        };
-
-        right.press = function() {
-            keys.right = true;
-        };
-
-        right.release = function() {
-            keys.right = false;
-        };
-
-        down.press = function() {
-            keys.down = true;
-        };
-
-        down.release = function() {
-            keys.down = false;
-        };
-    };
-    createKeybindings();
-
-    player.touchingGround = function() {
-        for (var i = 0; i < floors.length; i++) {
-            var floor = floors[i];
-
-            var playerBottom = player.position.y + player.height;
-            var playerRight = player.position.x + player.width;
-            var floorRight = floor.position.x + floor.width;
-
-            //console.log(playerBottom + ">" + floor.position.y + "&& (" + player.position.x + ">" + floor.position.x + " || " + playerRight + "<" + floorRight);
-            if (playerBottom > floor.position.y && (playerRight > floor.position.x && player.position.x < floorRight))
-                return true;
-        }
-        return false;
-    };
-        
-    function animate() {
-        requestAnimationFrame(animate);
-        moveRoad();
-        movePlayer();
-        renderer.render(stage);
-    }
-    animate();
-    
-    function moveRoad() {
-        if (floors[0].width > 1) {
-            var cut = false;
-            $.each(floors, function(index, floor) {
-                floor.position.x -= 3;
-                var floorOnScreen = floor.position.x + floor.width > 0;
-                if (!floorOnScreen) {
-                    stage.removeChild(floor);
-                    cut = true;
-                }
-            });
-
-            if (cut) {
-                stage.removeChild(floors[0]);
-                floors = floors.slice(1);
-            }
-
-        
-            if (floors.length < 3) {
-                var road = newRoad();
-                var lastFloor = floors[floors.length - 1];
-                console.log(lastFloor.width);
-                road.position.x = lastFloor.position.x + lastFloor.width;
-                stage.addChild(road);
-                floors.push(road);
-            }
-        }
-    }
-
-    function movePlayer() {
-        var touchingGround = player.touchingGround();
-
-        var speed = 0.5;
-        var maxSpeed = 5;
-        var jump = -10;
-        var friction = 0.3;
-
-        if (keys.right) 
-            player.vx += speed;
-
-        if (keys.left) 
-            player.vx -= speed;
+    <head>
+        <title></title>
+        <meta charset="utf-8" />
+    </head>
+    <body>
+        <script src="jquery-2.1.4.min.js"></script>
+        <script src="pixi.min.js"></script>
+        <script>
+            var screenWidth = 800;
+            var screenHeight = 600;
+            var renderer = new PIXI.autoDetectRenderer(screenWidth, screenHeight);
+            document.body.appendChild(renderer.view);
+            var stage = new PIXI.Container();
             
-
-        if (keys.up && touchingGround) {
-            player.vy = jump;
-            touchingGround = false;
-        }
-
-        if (player.vx !== 0)
-            if (touchingGround) {
-                if (player.vx > 0) {
-                    player.vx -= friction;
-                    if (player.vx < friction && !keys.right)
-                        player.vx = 0;
-                }
-
-                if (player.vx < 0) {
-                    player.vx += friction;
-                }
+            stage.updateLayersOrder = function () {
+                stage.children.sort(function(a,b) {
+                    a.zIndex = a.zIndex || 0;
+                    b.zIndex = b.zIndex || 0;
+                    return b.zIndex - a.zIndex
+                });
+            };
+            
+            function newBackground(){
+                var backgroundTexture = PIXI.Texture.fromImage('background.png');
+                var background = new PIXI.Sprite(backgroundTexture);
+                background.zIndex = 100;
+                return background;
             }
 
-        if (!touchingGround) {
-            player.vy += 1;
-        } else {
-            player.vy = 0;
-        }
-
-        if (player.vx > maxSpeed)
-            player.vx = maxSpeed;
-
-        if (player.vx < maxSpeed * -1)
-            player.vx = maxSpeed * -1;
-
-        player.x += player.vx;
-        player.y += player.vy;
-    }
+            function newRoad() {
+                var roadTexture = PIXI.Texture.fromImage('road.png');
+                var road = new PIXI.Sprite(roadTexture);
         
-    function keyboard(keyCode) {
-        var key = {};
-        key.code = keyCode;
-        key.isDown = false;
-        key.isUp = true;
-        key.press = undefined;
-        key.release = undefined;
-
-        key.downHandler = function (event) {
-            if (event.keyCode === key.code) {
-                if (key.isUp && key.press) key.press();
-                key.isDown = true;
-                key.isUp = false;
+                road.scale.x = 1;
+                road.scale.y = 0.25;
+                
+                road.position.x = 0;
+                road.position.y = screenHeight - road.height;
+                
+                console.log(roadTexture.height, road.position.y, screenHeight);
+                return road;
             }
-            event.preventDefault();
-        };
-
-        key.upHandler = function (event) {
-            if (event.keyCode === key.code) {
-                if (key.isDown && key.release) key.release();
+            
+            function newBuilding() {
+                var buildingTexture = PIXI.Texture.fromImage('building.png');
+                var building = new PIXI.Sprite(buildingTexture);
+                        
+                building.scale.x = Math.random() + Math.random();
+                building.scale.y = Math.random() + Math.random();
+                building.position.x = 400;
+                building.position.y = screenHeight - building.height - floors[0].height;
+                return building;
+            }
+        
+            function newPlayer() {
+                var playerTexture = PIXI.Texture.fromImage('bunny.png');
+                var player = new PIXI.Sprite(playerTexture);
+                player.scale.x = 0.5;
+                player.scale.y = 0.5;
+                
+                player.position.x = 200;
+                player.position.y = 100;
+                
+                player.zIndex = -1;
+                player.vx = 0;
+                player.vy = 0;
+                
+                player.touchingGround = touchingGround;
+        
+                return player;
+            }
+        
+            function createKeybindings() {
+                var left = keyboard(37),
+                    up = keyboard(38),
+                    right = keyboard(39),
+                    down = keyboard(40);
+        
+                this.keys = {};
+        
+                left.press = function() {
+                    keys.left = true;
+                };
+        
+                left.release = function () {
+                    keys.left = false;
+                };
+        
+                up.press = function() {
+                    keys.up = true;
+                };
+        
+                up.release = function() {
+                    keys.up = false;
+                };
+        
+                right.press = function() {
+                    keys.right = true;
+                };
+        
+                right.release = function() {
+                    keys.right = false;
+                };
+        
+                down.press = function() {
+                    keys.down = true;
+                };
+        
+                down.release = function() {
+                    keys.down = false;
+                };
+            };
+            createKeybindings();
+        
+            touchingGround = function() {
+                for (var i = 0; i < floors.length; i++) {
+                    var floor = floors[i];
+        
+                    var playerBottom = player.position.y + player.height;
+                    var playerRight = player.position.x + player.width;
+                    var floorRight = floor.position.x + floor.width;
+        
+                    //console.log(playerBottom + ">" + floor.position.y + "&& (" + player.position.x + ">" + floor.position.x + " || " + playerRight + "<" + floorRight);
+                    if (playerBottom > floor.position.y && (playerRight > floor.position.x && player.position.x < floorRight))
+                        return true;
+                }
+                return false;
+            };
+                
+            function animate() {
+                requestAnimationFrame(animate);
+                moveBackground();
+                moveRoad();
+                moveBuilding();
+                movePlayer();             
+                stage.updateLayersOrder();   
+                renderer.render(stage);
+            }
+            
+            function moveBackground() {
+                $.each(backgrounds, function(index, background){
+                    background.position.x -= 1.5;
+                });
+                
+                if (backgrounds[0].position.x < -backgrounds[0].width){
+                    stage.removeChild(backgrounds[0]);
+                    backgrounds = backgrounds.slice(1);
+                }
+                
+                if (backgrounds.length < 2) {
+                    var background = newBackground();
+                    background.position.x = backgrounds[0].position.x + backgrounds[0].width; 
+                    backgrounds.push(background);
+                    stage.addChild(background);
+                }
+                
+            }
+                        
+            function moveRoad() {
+                if (floors[0].width > 1) {
+                    var cut = false;
+                    $.each(floors, function(index, floor) {
+                        floor.position.x -= 3;
+                        var floorOnScreen = floor.position.x + floor.width > 0;
+                        if (!floorOnScreen) {
+                            stage.removeChild(floor);
+                            cut = true;
+                        }
+                    });
+        
+                    if (cut) {
+                        stage.removeChild(floors[0]);
+                        floors = floors.slice(1);
+                    }
+        
+                
+                    if (floors.length < 3) {
+                        var road = newRoad();
+                        var lastFloor = floors[floors.length - 1];
+                        //console.log(lastFloor.width);
+                        road.position.x = lastFloor.position.x + lastFloor.width;
+                        stage.addChild(road);
+                        floors.push(road);
+                    }
+                }
+            }
+            
+            function moveBuilding() {
+                if (buildings[0].position.x < -buildings[0].width){
+                    stage.removeChild(buildings[0]);
+                    buildings = buildings.slice(1);
+                }
+                
+                if (buildings.length < 4) {
+                    var building = newBuilding();
+                    building.position.x = buildings[buildings.length - 1].position.x + (screen.width / 4); 
+                    buildings.push(building);
+                    stage.addChild(building);
+                }
+                
+                $.each(buildings, function(index, building){
+                    building.position.x -= 3;
+                });
+            }
+        
+            function movePlayer() {
+                var touchingGround = player.touchingGround();
+        
+                var speed = 0.5;
+                var maxSpeed = 5;
+                var jump = -10;
+                var friction = 0.3;
+        
+                if (keys.right) 
+                    player.vx += speed;
+        
+                if (keys.left) 
+                    player.vx -= speed;
+                    
+        
+                if (keys.up && touchingGround) {
+                    player.vy = jump;
+                    touchingGround = false;
+                }
+        
+                if (player.vx !== 0)
+                    if (touchingGround) {
+                        if (player.vx > 0) {
+                            player.vx -= friction;
+                            if (player.vx < friction && !keys.right)
+                                player.vx = 0;
+                        }
+        
+                        if (player.vx < 0) {
+                            player.vx += friction;
+                        }
+                    }
+        
+                if (!touchingGround) {
+                    player.vy += 1;
+                } else {
+                    player.vy = 0;
+                }
+        
+                if (player.vx > maxSpeed)
+                    player.vx = maxSpeed;
+        
+                if (player.vx < maxSpeed * -1)
+                    player.vx = maxSpeed * -1;
+        
+                player.x += player.vx;
+                player.y += player.vy;
+            }
+                
+            function keyboard(keyCode) {
+                var key = {};
+                key.code = keyCode;
                 key.isDown = false;
                 key.isUp = true;
+                key.press = undefined;
+                key.release = undefined;
+        
+                key.downHandler = function (event) {
+                    if (event.keyCode === key.code) {
+                        if (key.isUp && key.press) key.press();
+                        key.isDown = true;
+                        key.isUp = false;
+                    }
+                    event.preventDefault();
+                };
+        
+                key.upHandler = function (event) {
+                    if (event.keyCode === key.code) {
+                        if (key.isDown && key.release) key.release();
+                        key.isDown = false;
+                        key.isUp = true;
+                    }
+                    event.preventDefault();
+                };
+        
+                window.addEventListener(
+                    "keydown", key.downHandler.bind(key), false
+                );
+        
+                window.addEventListener(
+                    "keyup", key.upHandler.bind(key), false
+                );
+                return key;
             }
-            event.preventDefault();
-        };
-
-        window.addEventListener(
-            "keydown", key.downHandler.bind(key), false
-        );
-
-        window.addEventListener(
-            "keyup", key.upHandler.bind(key), false
-        );
-        return key;
-    }
-</script>
-</body>
+        </script>
+        <script>
+            var assetsToLoad = [ "road.png", "bunny.png", "building.png"];
+            loader = new PIXI.loaders.Loader();
+            
+            loader.add('road', "road.png");
+            loader.add('bunny', "bunny.png");
+            loader.add('building', "building.png");
+            loader.add('background', "background.png");
+            
+            loader.once('complete', onAssetsLoaded);
+            
+            loader.load();
+            
+            function onAssetsLoaded() {
+                background = newBackground();
+                stage.addChild(background);
+                window.backgrounds = [];
+                backgrounds.push(background);
+                
+                var road = newRoad();
+                stage.addChild(road);
+                window.floors = [];
+                floors.push(road);
+                
+                var building = newBuilding();
+                stage.addChild(building);            
+                window.buildings = [];
+                buildings.push(building);          
+                
+                window.player = newPlayer();
+                stage.addChild(player);               
+                                
+                animate();
+            }
+        </script>
+    </body>
 </html>
